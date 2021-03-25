@@ -1,0 +1,12 @@
+<html>
+    <body>
+        <h4>All users are listed here </h4>
+            <ul>
+                <% usersList.map((result)=>{ %>
+                    <li>
+                        <%= result.name %>
+                    </li>
+                <% }) %>
+            </ul>
+    </body>
+</html>
