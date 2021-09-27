@@ -33,11 +33,97 @@ router.post("/add-food-category", VerifyToken, async (loggedInUser, request, res
   try {
 
     if(loggedInUser.user_type==1){
+
+      console.log('request.body');
+      console.log(request.body);
+
       request.body['created_by'] = loggedInUser._id;
     // request.body.password = bcrypt.hashSync(request.body.password, 10);
       var foodCategory  = new foodCategories(request.body);
       var result = await foodCategory.save();
       response.send(result);
+    } else{
+      response.status(500).send({"error":"user is not admin"});
+    }
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+/**
+ * update food category details
+ */
+ router.put("/update-food-category/:category_id", VerifyToken, async(loggedInUser,request, response, next)=> {
+  try {
+      
+    if(loggedInUser.user_type==1){
+      var categoryId = request.params.category_id;
+
+      const filter = { _id: categoryId };
+      const update = request.body;
+
+      // `result` is the document _after_ `update` was applied because of
+      // `new: true`
+      let result = await foodCategories.findOneAndUpdate(filter, update, {
+        new: true
+      });
+      
+      response.send(result);
+    } else{
+      response.status(500).send({"error":"user is not admin"});
+    }
+
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+/**
+ * delete food categories
+ */
+ router.delete("/delete-food-category/:category_id", VerifyToken, async (loggedInUser, request, response, next) => {
+  try {
+
+    var categoryId = request.params.category_id;
+
+    if(loggedInUser.user_type==1){
+      var result = await foodCategories.findOneAndRemove({ _id: categoryId });
+
+      if(result.status){
+        foodCategories.find({}).populate("created_by").exec(function(err, results) {
+          if (err) throw err;
+          console.log(results);
+          response.send(results);
+          // db.close();
+        });
+      } else {
+        response.status(500).send({"error":"This Category doesn't exist."});
+      }      
+    } else{
+      response.status(500).send({"error":"user is not admin"});
+    }
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+
+/**
+ * get only one food category
+ */
+ router.get('/get-food-categories/:category_id',VerifyToken, async (loggedInUser, request,response,next) => {
+  // console.log(req.body);
+  try {
+
+    var categoryId = request.params.category_id;
+
+    if(loggedInUser.user_type==1){
+
+      foodCategories.findById({_id : categoryId}).populate("created_by").exec(function(err, result) {
+        if (err) throw err;
+        console.log(result);
+        response.send(result);
+      });
     } else{
       response.status(500).send({"error":"user is not admin"});
     }
@@ -60,6 +146,9 @@ router.get('/get-food-categories',VerifyToken, async (loggedInUser, req,res,next
 
   // res.send(foodCategories);
 });
+
+
+
 
 
 /**
@@ -96,6 +185,115 @@ router.get('/get-food-sub-categories',VerifyToken, async (loggedInUser, req,res,
 
   // res.send(foodCategories);
 });
+
+
+/**
+ * get only one food sub category
+ */
+ router.get('/get-food-sub-categories/:sub_category_id',VerifyToken, async (loggedInUser, request,response,next) => {
+  // console.log(req.body);
+  try {
+
+    var subCategoryId = request.params.sub_category_id;
+
+    if(loggedInUser.user_type==1){
+
+      foodSubCategories.findById({_id : subCategoryId}).exec(function(err, result) {
+        if (err) throw err;
+        console.log(result);
+        response.send(result);
+      });
+    } else{
+      response.status(500).send({"error":"user is not admin"});
+    }
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+
+/**
+ * get food sub categories by food categoryId
+ */
+router.get('/get-food-sub-categories-by-category-id/:food_category_id',VerifyToken, async (loggedInUser, request,response,next) => {
+  // console.log(req.body);
+  try {
+
+    var foodCategoryId = request.params.food_category_id;
+
+    if(loggedInUser.user_type==1){
+
+      foodSubCategories.find({ food_category_id : foodCategoryId}).exec(function(err, result) {
+        if (err) throw err;
+        console.log(result);
+        response.send(result);
+      });
+    } else{
+      response.status(500).send({"error":"user is not admin"});
+    }
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+/**
+ * update food sub category details
+ */
+ router.put("/update-food-sub-category/:sub_category_id", VerifyToken, async(loggedInUser,request, response, next)=> {
+  try {
+      
+    if(loggedInUser.user_type==1){
+      var subCategoryId = request.params.sub_category_id;
+
+      const filter = { _id: subCategoryId };
+      const update = request.body;
+
+      // `result` is the document _after_ `update` was applied because of
+      // `new: true`
+      let result = await foodSubCategories.findOneAndUpdate(filter, update, {
+        new: true
+      });
+      
+      response.send(result);
+    } else{
+      response.status(500).send({"error":"user is not admin"});
+    }
+
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+/**
+ * delete food categories
+ */
+ router.delete("/delete-food-sub-category/:sub_category_id", VerifyToken, async (loggedInUser, request, response, next) => {
+  try {
+
+    var subCategoryId = request.params.sub_category_id;
+
+    if(loggedInUser.user_type==1){
+      var result = await foodSubCategories.findOneAndRemove({ _id: subCategoryId });
+
+      if(result.status){
+        foodSubCategories.find({}).populate("food_category_id").populate("created_by").exec(function(err, results) {
+          if (err) throw err;
+          console.log(results);
+          response.send(results);
+          // db.close();
+        });
+      } else {
+        response.status(500).send({"error":"This Sub Category doesn't exist."});
+      }      
+    } else{
+      response.status(500).send({"error":"user is not admin"});
+    }
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+
 
 
 /**

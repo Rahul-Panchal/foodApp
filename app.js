@@ -24,7 +24,7 @@ const config = require('./config/config.js');
 
 
 
-mongoose.connect(global.gConfig.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true , useCreateIndex: true});
+mongoose.connect(global.gConfig.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true , useCreateIndex: true, useFindAndModify: false });
 // mongoose.connect(mongoUrl, { useNewUrlParser: true, useUnifiedTopology: true });
 
 // Users.find({}, function(err, result) {
