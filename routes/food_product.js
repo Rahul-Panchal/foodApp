@@ -101,12 +101,12 @@ router.post('/add', verifyToken, async (loggedInUser, request, response, next) =
      */
     if(loggedInUser.user_type == 1 || loggedInUser.user_type == 2){
 
-      uploadBannerImage(request,response, async function(err) {
+      uploadProductImage(request,response, async function(err) {
         if (err) {
           response.send('error uploading file' + err);
         }
 
-        console.log('request.body for update restaurant');
+        console.log('request.body for update foodProducts');
         console.log(request.body);
 
         console.log('request.file');
@@ -121,7 +121,7 @@ router.post('/add', verifyToken, async (loggedInUser, request, response, next) =
         const filter = { _id: foodProductId };
         const update = request.body;
 
-        let result = await restaurantDetails.findOneAndUpdate(filter, update, {
+        let result = await foodProducts.findOneAndUpdate(filter, update, {
           new: true
         });
 
@@ -134,7 +134,7 @@ router.post('/add', verifyToken, async (loggedInUser, request, response, next) =
           // insert_status : status,
           message : 'File uploaded!',
           file    : request.file,
-          fileUrl : 'http://localhost:8081/images/' + request.file.filename
+          fileUrl : 'http://localhost:8081/images/product_images/' + request.file.filename
         });
       });
 
@@ -153,7 +153,17 @@ router.post('/add', verifyToken, async (loggedInUser, request, response, next) =
 router.get('/product-list', verifyToken, async (loggedInUser, request, response, next) => {
   try {
 
-      await foodProducts.find({}).populate('food_category_id').populate('food_sub_category_id').populate('created_by').exec(function(err, result){
+      // await foodProducts.find({}).populate('food_category_id').populate('food_sub_category_id').populate('created_by').exec(function(err, result){
+        await foodProducts.find({}).populate({
+          path: 'food_sub_category_id',
+          // Get all details from inner related collections
+          populate: { 
+            path: 'food_category_id', 
+            // populate : { 
+            //   path:'food_product_id'
+            // } 
+          }
+        }).populate('created_by').exec(function(err, result){
         if(err)
         response.send(err);
       

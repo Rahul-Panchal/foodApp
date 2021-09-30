@@ -109,7 +109,7 @@ var uploadBannerImage = multer({storage: bannerImageStorage}).single('banner_ima
           // insert_status : status,
           message : 'File uploaded!',
           file    : request.file,
-          fileUrl : 'http://localhost:8081/images/' + request.file.filename
+          fileUrl : 'http://localhost:8081/images/banner_images/' + request.file.filename
         });
 
 
@@ -168,7 +168,7 @@ var uploadBannerImage = multer({storage: bannerImageStorage}).single('banner_ima
           // insert_status : status,
           message : 'File uploaded!',
           file    : request.file,
-          fileUrl : 'http://localhost:8081/images/' + request.file.filename
+          fileUrl : 'http://localhost:8081/images/banner_images/' + request.file.filename
         });
       });
 
@@ -320,7 +320,17 @@ router.get('/restaurant-product-list/:restaurantId', verifyToken, async (loggedI
 
       var restaurantId = request.params.restaurantId;
       if(restaurantId) {
-        await restaurantProducts.find({'restaurant_detail_id':restaurantId}).populate('restaurant_detail_id').populate('food_category_id').populate('food_sub_category_id').populate('food_product_id').populate('created_by').exec(function(err, result){
+        // await restaurantProducts.find({'restaurant_detail_id':restaurantId}).populate('restaurant_detail_id').populate('food_category_id').populate('food_sub_category_id').populate('food_product_id').populate('created_by').exec(function(err, result){
+        await restaurantProducts.find({'restaurant_detail_id':restaurantId}).populate('restaurant_detail_id').populate({
+            path: 'food_product_id',
+            // Get all details from inner related collections
+            populate: { 
+              path: 'food_sub_category_id', 
+              populate : { 
+                path:'food_category_id'
+              } 
+            }
+          }).populate('created_by').exec(function(err, result){
           if(err)
           response.send(err);
         
