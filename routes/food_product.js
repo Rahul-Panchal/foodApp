@@ -100,7 +100,7 @@ router.post('/add', verifyToken, async (loggedInUser, request, response, next) =
      * 2 for user_type= restaurant manager
      */
     if(loggedInUser.user_type == 1 || loggedInUser.user_type == 2){
-
+      
       uploadProductImage(request,response, async function(err) {
         if (err) {
           response.send('error uploading file' + err);
@@ -111,10 +111,14 @@ router.post('/add', verifyToken, async (loggedInUser, request, response, next) =
 
         console.log('request.file');
         console.log(request.file);
-        
-        request.body.product_image = request.file.filename;
 
-        request.body['updated_by'] = loggedInUser._id;
+        if(request.file) {
+          request.body.product_image = request.file.filename;
+        } else {
+          delete request.body.product_image;
+        }
+
+        request.body.updated_by = loggedInUser._id;
 
         var foodProductId = request.params.food_product_id;
       
@@ -125,8 +129,8 @@ router.post('/add', verifyToken, async (loggedInUser, request, response, next) =
           new: true
         });
 
-        // response.send(result);
-
+        response.send(result);
+/*
         response.json({
           result : result,
           success : true,
@@ -136,7 +140,10 @@ router.post('/add', verifyToken, async (loggedInUser, request, response, next) =
           file    : request.file,
           fileUrl : 'http://localhost:8081/images/product_images/' + request.file.filename
         });
+        */
       });
+
+      // response.send('result');
 
     } else{
       response.status(500).send({message:"logged in user is not admin"});

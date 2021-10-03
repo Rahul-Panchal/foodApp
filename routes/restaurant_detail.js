@@ -5,8 +5,10 @@ var router = express.Router();
 var restaurantDetails = require('../models/restaurant_details');
 
 var restaurantProducts = require('../models/restaurant_products');
+var foodProducts = require('../models/food_products');
 
 const verifyToken =  require('./VerifyToken');
+const fs = require('fs');
 
 
 /* GET users listing. */
@@ -286,23 +288,106 @@ router.get('/restaurant-list/:managerId', verifyToken, async (loggedInUser, requ
   }
 });
 
-//
+/*************************************Restaurant Food Product Lists***************************/
+
+var restaurantProductImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './public/images/restaurant_product_images');
+  },
+  filename: (req, file, cb) => {
+    console.log(file);
+    var filetype = '';
+    if(file.mimetype === 'image/gif') {
+      filetype = 'gif';
+    }
+    if(file.mimetype === 'image/png') {
+      filetype = 'png';
+    }
+    if(file.mimetype === 'image/jpeg') {
+      filetype = 'jpg';
+    }
+    cb(null, 'image-' + Date.now() + '.' + filetype);
+  }
+});
+
+var uploadRestaurantProductImage = multer({storage: restaurantProductImageStorage}).single('product_image');;
+var path = require('path');
+
 /**
  * save restaurant product details
  */
 router.post('/add-restaurant-product', verifyToken, async (loggedInUser, request, response, next) => {
   try {
 
+    console.log('request.body form add restuatrant food product');
+    console.log(request.body);
     /**
      * get all restaurant details on the behalf of it's manager
     */
 
-    if(loggedInUser.user_type==2){
-      request.body['created_by'] = loggedInUser._id;
-    // request.body.password = bcrypt.hashSync(request.body.password, 10);
-      var restaurantProduct  = new restaurantProducts(request.body);
-      var result = await restaurantProduct.save();
-      response.send(result);
+    if(loggedInUser.user_type==1 || loggedInUser.user_type==2){
+
+      uploadRestaurantProductImage(request,response, async function(err) {
+        if (err) {
+          response.send('error uploading file' + err);
+        }
+  
+        console.log('request.body');
+        console.log(request.body);
+        console.log('request.file');
+        console.log(request.file);
+        delete request.body["_id"]; 
+        
+        if(request.file) {
+          request.body.product_image = request.file.filename;
+        } else {
+
+          delete request.body.product_image;
+          try {
+            var foodProductId = request.body.food_product_id;
+              
+            let foodProduct =  await foodProducts.findOne({'_id':foodProductId});
+   
+            console.log('foodProduct');
+            console.log(foodProduct);
+            // File destination.txt will be created or overwritten by default.
+            fs.copyFile(path.join(__dirname, '../public')+'/images/product_images/'+foodProduct.product_image, path.join(__dirname, '../public')+'/images/restaurant_product_images/'+foodProduct.product_image, (err) => {
+              if (err) {
+                console.log('error in file transfer');
+                console.log(err);
+                throw err;
+
+              }
+
+              console.log(path.join(__dirname, '../public')+'/images/product_images/'+foodProduct.product_image +' is was copied to '+ path.join(__dirname, '../public')+'/images/restaurant_product_images/'+foodProduct.product_image);
+            });
+
+            request.body.product_image = foodProduct.product_image;
+        
+          } catch (error) {
+            response.status(500).send(error);
+          }
+        }
+
+        request.body.created_by = loggedInUser._id;
+
+        var restaurantProduct  = new restaurantProducts(request.body);
+        var result = await restaurantProduct.save();
+        console.log('result');
+        console.log(result);
+        response.send(result);
+
+        // response.json({
+        //   result : result,
+        //   success : true,
+        //   body    : request.body,
+        //   // insert_status : status,
+        //   message : 'File uploaded!',
+        //   file    : request.file,
+        //   fileUrl : 'http://localhost:8081/images/restaurant_product_images/' + request.file.filename
+        // });
+
+      });
     } else{
       response.status(500).send({"error":"user is not admin"});
     }
@@ -338,6 +423,51 @@ router.get('/restaurant-product-list/:restaurantId', verifyToken, async (loggedI
         });
       } else {
         response.status(500).send({message:"restaurant details have not provided"});
+      }
+
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+
+/**
+ * delete restaurant product details for a particular restaurant product
+ */
+router.delete('/delete-restaurant-product/:restaurant_product_Id', verifyToken, async (loggedInUser, request, response, next) => {
+  try {
+
+      var restaurantProductId = request.params.restaurant_product_Id;
+      if(restaurantProductId) {
+        // await restaurantProducts.find({'restaurant_detail_id':restaurantId}).populate('restaurant_detail_id').populate('food_category_id').populate('food_sub_category_id').populate('food_product_id').populate('created_by').exec(function(err, result){
+        
+          var result = await restaurantProducts.findOneAndRemove({ _id: restaurantProductId });
+        
+          console.log('result of delete');
+          console.log(result);
+          let restaurantId = result.restaurant_detail_id
+
+          if(result.status){
+            await restaurantProducts.find({'restaurant_detail_id':restaurantId}).populate('restaurant_detail_id').populate({
+              path: 'food_product_id',
+              // Get all details from inner related collections
+              populate: { 
+                path: 'food_sub_category_id', 
+                populate : { 
+                  path:'food_category_id'
+                } 
+              }
+            }).populate('created_by').exec(function(err, result){
+            if(err)
+            response.send(err);
+          
+            response.send(result);
+          });
+        } else {
+          response.status(500).send({"error":"This Restaurant Food Product doesn't exist."});
+        }
+      } else {
+        response.status(500).send({message:"restaurant Food Product details have not provided"});
       }
 
   } catch (error) {

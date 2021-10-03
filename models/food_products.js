@@ -10,7 +10,7 @@ const FoodProductsSchema = Schema({
     // 'product_price'         : String,
     // 'product_disclaimer'    : String,
     'product_image'         : String,// [Array Object Multiple]
-    // 'product_weight_desc'   : String,// [Half Plate / Full Plate ( Need help Input text or create separate table ) ]
+    'plate_status'          : { type: Boolean, default : null },// [ Applicable(Half Plate / Full Plate) / Not Applicable(breads) ( Need help Input text or create separate table ) ]
     'status'                : Boolean,// [0/1]
     // 'product_best_offer'    : String,// [0/1]
     // 'product_top_selling'   : String,// [0/1]
