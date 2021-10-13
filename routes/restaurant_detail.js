@@ -396,6 +396,69 @@ router.post('/add-restaurant-product', verifyToken, async (loggedInUser, request
   }
 });
 
+/**
+ * update restaurant product details
+ */
+ router.put('/update-restaurant-product/:restaurant_product_id', verifyToken, async (loggedInUser, request, response, next) => {
+  try {
+
+    var restaurantProductId = request.params.restaurant_product_id;
+
+    console.log('request.body update form for restuatrant food product');
+    console.log(request.body);
+    /**
+     * get all restaurant details on the behalf of it's manager
+    */
+
+    if(loggedInUser.user_type==1 || loggedInUser.user_type==2){
+
+      uploadRestaurantProductImage(request,response, async function(err) {
+        if (err) {
+          response.send('error uploading file' + err);
+        }
+  
+        console.log('request.body');
+        console.log(request.body);
+        console.log('request.file');
+        console.log(request.file);
+        
+        if(request.file) {
+          request.body.product_image = request.file.filename;
+        } else {
+          delete request.body.product_image;
+        }
+
+        request.body.updated_by = loggedInUser._id;
+
+        const filter = { _id: restaurantProductId };
+        const update = request.body;
+
+        let result = await restaurantProducts.findOneAndUpdate(filter, update, {
+          new: true
+        });
+
+        response.send(result);
+
+        // response.json({
+        //   result : result,
+        //   success : true,
+        //   body    : request.body,
+        //   // insert_status : status,
+        //   message : 'File uploaded!',
+        //   file    : request.file,
+        //   fileUrl : 'http://localhost:8081/images/restaurant_product_images/' + request.file.filename
+        // });
+
+      });
+    } else{
+      response.status(500).send({"error":"user is not admin"});
+    }
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+
 
 /**
  * get restaurant product details for a particular restaurant
@@ -429,6 +492,53 @@ router.get('/restaurant-product-list/:restaurantId', verifyToken, async (loggedI
     response.status(500).send(error);
   }
 });
+
+/**
+ * get restaurant product details for a particular restaurant_product_id
+ */
+router.get('/get-restaurant-product/:restaurant_product_id', verifyToken, async (loggedInUser, request, response, next) => {
+  try {
+
+      var restaurantProductId = request.params.restaurant_product_id;
+      if(restaurantProductId) {
+        // await restaurantProducts.findById(restaurantProductId).exec(function(err, result){
+        /*
+        await restaurantProducts.findById(restaurantProductId).populate('restaurant_detail_id').populate({
+            path: 'food_product_id',
+            // Get all details from inner related collections
+            populate: { 
+              path: 'food_sub_category_id', 
+              populate : { 
+                path:'food_category_id'
+              } 
+            }
+          }).populate('created_by').exec(function(err, result){
+*/
+          await restaurantProducts.findById(restaurantProductId).populate({
+            path: 'food_product_id',
+            // Get all details from inner related collections
+            populate: { 
+              path: 'food_sub_category_id', 
+              populate : { 
+                path:'food_category_id'
+              } 
+            }
+          }).exec(function(err, result){
+
+          if(err)
+          response.send(err);
+        
+          response.send(result);
+        });
+      } else {
+        response.status(500).send({message:"product details have not provided"});
+      }
+
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
 
 
 /**
